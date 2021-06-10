@@ -1,268 +1,254 @@
-set_size_grob <- function(loon_grob, index, new_size, ...) {
+set_size_grob <- function(loon.grob, index, newSize, ...) {
   obj <- character(0)
-  class(obj) <- names(loon_grob$children)
+  class(obj) <- names(loon.grob$children)
   UseMethod("set_size_grob", obj)
 }
 
-set_size_grob.l_plot <- function(loon_grob, index, new_size, ...) {
-  
-  args <- list(...)  
-  pointsTree_name <- args$pointsTree_name
+set_size_grob.l_plot <- function(loon.grob, index, newSize, ...) {
 
-  if(pointsTree_name != "points: missing glyphs" & length(index) > 0) {
+  args <- list(...)
+  pointsTreeName <- args$pointsTreeName
+  len <- length(index)
+
+  if(pointsTreeName != "points: missing glyphs" && len > 0) {
 
     roundings <- args$roundings
-    pch <- args$pch
-    
-    newGrob <- getGrob(loon_grob, pointsTree_name)
+    changes <- args$changes
+    newGrob <- grid::getGrob(loon.grob, pointsTreeName)
 
-    lapply(index,
-           function(i) {
-             if(str_detect(newGrob$children[[i]]$name, "primitive_glyph")) {
-               newGrob$children[[i]] <<- editGrob(
-                 grob = newGrob$children[[i]],
-                 gp = if(pch[i] %in% 21:24) {
-                   gpar(
-                     fill = newGrob$children[[i]]$gp$fill,
-                     cex = new_size[i],
-                     col = newGrob$children[[i]]$gp$col
-                   )
-                 } else {
-                   gpar(
-                     col = newGrob$children[[i]]$gp$col,
-                     cex = new_size[i]
-                   )
-                 }
+    lapply(seq(len),
+           function(k) {
+
+             i <- index[k]
+             grobi <- newGrob$children[[i]]
+
+             if(grepl(grobi$name, pattern = "primitive_glyph")) {
+
+               gp <- grobi$gp
+               gp$cex <- newSize[i]
+
+               newGrob$children[[i]] <<- grid::editGrob(
+                 grob = grobi,
+                 gp = gp
                )
-             } else if(str_detect(newGrob$children[[i]]$name, "pointrange_glyph")) {
+             } else if(grepl(grobi$name, pattern = "pointrange_glyph")) {
 
-               newGrob$children[[i]] <<- setGrob(
-                 gTree = newGrob$children[[i]],
+               pointGrob <- grid::getGrob(grobi, "point")
+               gp <- pointGrob$gp
+               gp$cex <- newSize[i]
+
+               newGrob$children[[i]] <<- grid::setGrob(
+                 gTree = grobi,
                  gPath = "point",
-                 newGrob = editGrob(
-                   grob = getGrob(newGrob$children[[i]], "point"),
-                   gp = if(pch[i] %in% 21:24) {
-                     gpar(
-                       fill = newGrob$children[[i]]$gp$fill,
-                       cex = new_size[i],
-                       col = newGrob$children[[i]]$gp$col
-                     )
-                   } else {
-                     gpar(
-                       col = newGrob$children[[i]]$gp$col,
-                       cex = new_size[i]
-                     )
-                   }
+                 newGrob = grid::editGrob(
+                   grob = pointGrob,
+                   gp = gp
                  )
                )
-             } else if(str_detect(newGrob$children[[i]]$name, "text_glyph")) {
-               newGrob$children[[i]] <<- editGrob(
-                 grob = newGrob$children[[i]],
-                 gp = gpar(
-                   col = newGrob$children[[i]]$gp$col,
-                   fontsize = new_size[i] * loon_default_size()[["adjusted_size"]]
-                 )
-               )
-             } else if(str_detect(newGrob$children[[i]]$name, "serialaxes_glyph")) {
+             } else if(grepl(grobi$name, pattern = "text_glyph")) {
 
-               serialaxes_tree <- newGrob$children[[i]]
+               gp <- grobi$gp
+               gp$fontsize <- newSize[i] * loon_default_size()[["adjusted_size"]]
+
+               newGrob$children[[i]] <<- grid::editGrob(
+                 grob = grobi,
+                 gp = gp
+               )
+             } else if(grepl(grobi$name, pattern = "serialaxes_glyph")) {
+
                rounding <- roundings[[i]][[1]]
 
-               if(is.na(new_size[i])) stop("wrong size") 
+               if(is.na(newSize[i])) stop("wrong size")
                # reset boundary
-               boundary_grob <- getGrob(serialaxes_tree, "boundary")
-               if(is.null(boundary_grob)) {
-                 boundary_grob <- getGrob(serialaxes_tree, "boundary: polylineGrob arguments")
+               boundaryGrob <- grid::getGrob(grobi, "boundary")
+               if(is.null(boundaryGrob)) {
+                 boundaryGrob <- grid::getGrob(grobi, "boundary: polylineGrob arguments")
                }
 
-               x_boundary <- rounding$boundary_grob_rounding$x * sqrt(new_size[i]/default_size())
-               y_boundary <- rounding$boundary_grob_rounding$y * sqrt(new_size[i]/default_size())
-               
-               boundary_grob <- editGrob(
-                 grob = boundary_grob,
-                 x = get_unit(boundary_grob$x, as.numeric = FALSE) +
-                   unit(x_boundary, "mm"),
-                 y = get_unit(boundary_grob$y, as.numeric = FALSE) +
-                   unit(y_boundary, "mm")
+               xBoundary <- rounding$boundaryGrobRounding$x * sqrt(newSize[i]/default_size())
+               yBoundary <- rounding$boundaryGrobRounding$y * sqrt(newSize[i]/default_size())
+
+               boundaryGrob <- grid::editGrob(
+                 grob = boundaryGrob,
+                 x = get_unit(boundaryGrob$x, as.numeric = FALSE) +
+                   unit(xBoundary, "mm"),
+                 y = get_unit(boundaryGrob$y, as.numeric = FALSE) +
+                   unit(yBoundary, "mm")
                )
 
                # axes serialaxes
-               axes_grob <- getGrob(serialaxes_tree, "axes")
-               if(is.null(axes_grob)) {
-                 axes_grob <- getGrob(serialaxes_tree, "axes: polylineGrob arguments")
-                 axes_grob_name <- "axes: polylineGrob arguments"
+               axesGrob <- grid::getGrob(grobi, "axes")
+               if(is.null(axesGrob)) {
+                 axesGrob <- grid::getGrob(grobi, "axes: polylineGrob arguments")
+                 axesGrob_name <- "axes: polylineGrob arguments"
                } else {
-                 axes_grob_name <- "axes"
+                 axesGrob_name <- "axes"
                }
 
-               x_axesRounding <- rounding$axes_grob_rounding$x * sqrt(new_size[i]/default_size())
-               y_axesRounding <- rounding$axes_grob_rounding$y * sqrt(new_size[i]/default_size())
-               
-               axes_grob <- editGrob(
-                 grob = axes_grob,
-                 x = get_unit(axes_grob$x, as.numeric = FALSE) +
-                   unit(x_axesRounding, "mm"),
-                 y = get_unit(axes_grob$y, as.numeric = FALSE) +
-                   unit(y_axesRounding, "mm")
+               xAxesRounding <- rounding$axesGrobRounding$x * sqrt(newSize[i]/default_size())
+               yAxesRounding <- rounding$axesGrobRounding$y * sqrt(newSize[i]/default_size())
+
+               axesGrob <- grid::editGrob(
+                 grob = axesGrob,
+                 x = get_unit(axesGrob$x, as.numeric = FALSE) +
+                   unit(xAxesRounding, "mm"),
+                 y = get_unit(axesGrob$y, as.numeric = FALSE) +
+                   unit(yAxesRounding, "mm")
                )
 
-               serialaxes_grob <- getGrob(newGrob$children[[i]], "polyline")
-               if(is.null(serialaxes_grob)) {
-                 serialaxes_grob <- getGrob(newGrob$children[[i]], "polyline: showArea")
+               serialaxesGrob <- grid::getGrob(grobi, "polyline")
+               if(is.null(serialaxesGrob)) {
+                 serialaxesGrob <- grid::getGrob(grobi, "polyline: showArea")
                }
 
-               x_rounding <- rounding$serialaxes_grob_rounding$x * sqrt(new_size[i]/default_size())
-               y_rounding <- rounding$serialaxes_grob_rounding$y * sqrt(new_size[i]/default_size())
-               
-               serialaxes_grob <- editGrob(
-                 grob = serialaxes_grob,
-                 x = get_unit(serialaxes_grob$x, as.numeric = FALSE) + unit(x_rounding, "mm"),
-                 y = get_unit(serialaxes_grob$y, as.numeric = FALSE) + unit(y_rounding, "mm")
+               xRounding <- rounding$serialaxesGrobRounding$x * sqrt(newSize[i]/default_size())
+               yRounding <- rounding$serialaxesGrobRounding$y * sqrt(newSize[i]/default_size())
+
+               serialaxesGrob <- grid::editGrob(
+                 grob = serialaxesGrob,
+                 x = get_unit(serialaxesGrob$x, as.numeric = FALSE) + unit(xRounding, "mm"),
+                 y = get_unit(serialaxesGrob$y, as.numeric = FALSE) + unit(yRounding, "mm")
                )
 
-               newGrob$children[[i]] <<- if(str_detect(newGrob$children[[i]]$name, "parallel")) {
+               newGrob$children[[i]] <<- if(grepl(grobi$name,pattern =  "parallel")) {
                  gTree(
                    children = gList(
-                     boundary_grob,
-                     axes_grob,
-                     serialaxes_grob
+                     boundaryGrob,
+                     axesGrob,
+                     serialaxesGrob
                    ),
-                   name =  newGrob$children[[i]]$name
+                   name =  grobi$name
                  )
                } else {
                  gTree(
                    children = gList(
-                     serialaxes_grob,
-                     boundary_grob,
-                     axes_grob
+                     serialaxesGrob,
+                     boundaryGrob,
+                     axesGrob
                    ),
-                   name =  newGrob$children[[i]]$name
+                   name =  grobi$name
                  )
                }
-             } else if(str_detect(newGrob$children[[i]]$name, "polygon_glyph")) {
+             } else if(grepl(grobi$name, pattern = "polygon_glyph")) {
+
                rounding <- roundings[[i]][[1]]
 
-               x_rounding <- rounding$x * sqrt(new_size[i]/default_size())
-               y_rounding <- rounding$y * sqrt(new_size[i]/default_size())
-               
-               newGrob$children[[i]] <<- editGrob(
-                 grob = newGrob$children[[i]],
-                 x = get_unit(newGrob$children[[i]]$x, as.numeric = FALSE) + unit(x_rounding, "mm"),
-                 y = get_unit(newGrob$children[[i]]$y, as.numeric = FALSE) + unit(y_rounding, "mm")
-               )
-             } else if(str_detect(newGrob$children[[i]]$name, "image_glyph")) {
-               rounding <- roundings[[i]][[1]]
+               xRounding <- rounding$x * sqrt(newSize[i])
+               yRounding <- rounding$y * sqrt(newSize[i])
 
-               image_border_grob <- getGrob(newGrob$children[[i]], "image_border")
-              
-               width <- rounding$width * sqrt(new_size[i]/default_size())
-               height <- rounding$height * sqrt(new_size[i]/default_size())
-               
-               image_border_grob <- editGrob(
-                 grob = image_border_grob,
-                 width = get_unit(image_border_grob$width, unit = "mm", as.numeric = FALSE) + unit(width, "cm"),
-                 height = get_unit(image_border_grob$height, unit = "mm", as.numeric = FALSE) + unit(height, "cm")
+               newGrob$children[[i]] <<- grid::editGrob(
+                 grob = grobi,
+                 x = get_unit(grobi$x, as.numeric = FALSE) + unit(xRounding, "mm"),
+                 y = get_unit(grobi$y, as.numeric = FALSE) + unit(yRounding, "mm")
+               )
+             } else if(grepl(grobi$name, pattern = "image_glyph")) {
+
+               # rounding <- roundings[[i]][[1]]
+
+               imageBorderGrob <- grid::getGrob(grobi, "image_border")
+
+               # width <- rounding$width * sqrt(newSize[i]/default_size())
+               # height <- rounding$height * sqrt(newSize[i]/default_size())
+
+               imageBorderGrob <- grid::editGrob(
+                 grob = imageBorderGrob,
+                 width = imageBorderGrob$width + changes[k] * unit(2, "mm"),
+                 height = imageBorderGrob$height + changes[k] * unit(2, "mm")
                )
 
-               image_grob <- getGrob(newGrob$children[[i]], "image")
-               image_grob <- editGrob(
-                 grob = image_grob,
-                 width = unit(width, "cm"),
-                 height = unit(height, "cm")
+               imageGrob <- grid::getGrob(grobi, "image")
+               imageGrob <- grid::editGrob(
+                 grob = imageGrob,
+                 width = imageGrob$width + changes[k] * unit(2, "mm"),
+                 height = imageGrob$height + changes[k] * unit(2, "mm")
                )
 
                newGrob$children[[i]] <<- gTree(
                  children = gList(
-                   image_border_grob,
-                   image_grob
+                   imageBorderGrob,
+                   imageGrob
                  ),
-                 name =  newGrob$children[[i]]$name
+                 name =  grobi$name
                )
-             } else stop("not inplemented")
+             } else {
+               warning("Not Implemented yet", call. = FALSE)
+               grobi
+             }
            }
     )
 
-    setGrob(
-      gTree = loon_grob,
-      gPath = pointsTree_name,
+    grid::setGrob(
+      gTree = loon.grob,
+      gPath = pointsTreeName,
       newGrob = newGrob
     )
   } else {
-    loon_grob
+    loon.grob
   }
 }
 
-set_size_grob.l_graph <- function(loon_grob, index, new_size, ...) {
+set_size_grob.l_graph <- function(loon.grob, index, newSize, ...) {
 
   if(length(index) > 0) {
-    args <- list(...)
-    pch <- args$pch
-    
-    newGrob <- getGrob(loon_grob, "graph nodes")
-    
+
+    newGrob <- grid::getGrob(loon.grob, "graph nodes")
+
     lapply(index,
            function(i) {
-             
-             newGrob$children[[i]] <<- editGrob(
-               grob = newGrob$children[[i]],
-               gp = if(pch[i] %in% 21:24) {
-                 gpar(
-                   fill = newGrob$children[[i]]$gp$fill,
-                   cex = new_size[i],
-                   col = newGrob$children[[i]]$gp$col
-                 )
-               } else {
-                 gpar(
-                   col = newGrob$children[[i]]$gp$col,
-                   cex = new_size[i]
-                 )
-               }
+
+             grobi <- newGrob$children[[i]]
+             gp <- grobi$gp
+             gp$cex <- newSize[i]
+
+             newGrob$children[[i]] <<- grid::editGrob(
+               grob = grobi,
+               gp = gp
              )
-             
+
            }
     )
-    
-    setGrob(
-      gTree = loon_grob,
+
+    grid::setGrob(
+      gTree = loon.grob,
       gPath = "graph nodes",
       newGrob = newGrob
     )
   } else {
-    loon_grob
+    loon.grob
   }
 }
 
 
-set_size_grob.l_serialaxes <- function(loon_grob, index, new_size, ...) {
+set_size_grob.l_serialaxes <- function(loon.grob, index, newSize, ...) {
 
   args <- list(...)
-  axes_gPath <- args$axes_gPath
+  axesGpath <- args$axesGpath
   showArea <- args$showArea
 
-  if(!showArea & length(index) > 0) {
-    axes_grob <- getGrob(loon_grob, axes_gPath)
+  if(!showArea && length(index) > 0) {
+
+    axesGrob <- grid::getGrob(loon.grob, axesGpath)
 
     lapply(index,
            function(i) {
 
-             grobi <- axes_grob$children[[i]]
+             grobi <- axesGrob$children[[i]]
+             gp <- grobi$gp
+             gp$lwd <- newSize[i]
 
-             axes_grob$children[[i]] <<- editGrob(
+             axesGrob$children[[i]] <<- grid::editGrob(
                grob = grobi,
-               gp = gpar(
-                 col = grobi$gp$col,
-                 lwd = new_size[i]
-               )
+               gp = gp
              )
            }
     )
 
-    setGrob(
-      gTree = loon_grob,
-      gPath = axes_gPath,
-      newGrob = axes_grob
+    grid::setGrob(
+      gTree = loon.grob,
+      gPath = axesGpath,
+      newGrob = axesGrob
     )
   } else {
-    loon_grob
+    loon.grob
   }
 }

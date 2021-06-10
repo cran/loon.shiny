@@ -15,8 +15,7 @@ knitr::opts_chunk$set(
 library(loon.shiny)
 
 ## ---- iris basic, eval = FALSE, echo = TRUE, fig.align="center", warning=FALSE, message=FALSE----
-#  library(loon)
-#  library(shiny)
+#  library(loon.shiny)
 #  library(dplyr)
 #  library(magrittr)
 #  # Loon scatterplot
@@ -53,7 +52,7 @@ library(loon.shiny)
 #                   linewidth = 2,
 #                   index = "end")
 #  }
-#  shiny.loon(p, plotWidth = "400px")
+#  loon.shiny(p, plotRegionWidth = "400px")
 
 ## ----shiny basic, echo = FALSE, message = FALSE, warning = FALSE, fig.width = 5, fig.height = 4, fig.align = "center", out.width = "80%"----
 include_graphics(path_concat(imageDirectory, "loon_shiny_scatterplot.PNG"))
@@ -86,9 +85,9 @@ include_graphics(path_concat(imageDirectory, "glyph_panel.PNG"))
 #               linkingGroup = "iris",
 #               showLabels = FALSE,  swapAxes = TRUE,
 #               showStackedColors = TRUE)
-#  shiny.loon(list(p1, p2, p3),
+#  loon.shiny(list(p1, p2, p3),
 #             layout_matrix = matrix(c(2,NA,1,3), nrow = 2, byrow = TRUE),
-#             plotWidth = "400px")
+#             plotRegionWidth = "400px")
 
 ## ----compound_plot, echo = FALSE, message = FALSE, warning = FALSE, fig.width = 2, fig.height = 2, fig.align = "center", out.width = "80%"----
 include_graphics(path_concat(imageDirectory, "compound_plot.PNG"))

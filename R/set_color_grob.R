@@ -1,283 +1,283 @@
-set_color_grob <- function(loon_grob, ...) {
+set_color_grob <- function(loon.grob, index, newColor, ...) {
   obj <- character(0)
-  class(obj) <- names(loon_grob$children)
+  class(obj) <- names(loon.grob$children)
   UseMethod("set_color_grob", obj)
 }
 
-set_color_grob.l_plot <- function(loon_grob, ...) {
+set_color_grob.l_plot <- function(loon.grob, index, newColor, ...) {
 
   args <- list(...)
-  index <- args$index
-  pointsTree_name <- args$pointsTree_name
-  
-  if(pointsTree_name != "points: missing glyphs" & length(index) > 0) {
-    
-    color <- args$color
-    size <- args$size
-    pch <- args$pch
-    loon_color <- args$loon_color
-    
-    if(length(color) == 1) {
-      color <- rep(color, length(index))
-    } else if (length(color) != length(index)) {
+  pointsTreeName <- args$pointsTreeName
+  len <- length(index)
+
+  if(pointsTreeName != "points: missing glyphs" && len > 0) {
+
+    newGrob <- grid::getGrob(loon.grob, pointsTreeName)
+
+    lenNewColor <- length(newColor)
+    if(lenNewColor == 1) {
+      newColor <- rep(newColor, len)
+    } else if (lenNewColor != len) {
       stop("color length is not equal to index length")
     } else NULL
-    
-    newGrob <- getGrob(loon_grob, pointsTree_name)
-    
-    lapply(index,
-           function(i) {
-             
+
+    lapply(seq(len),
+           function(k) {
+
+             i <- index[k]
+
              grobi <- newGrob$children[[i]]
-             
-             newGrob$children[[i]] <<- if(str_detect(grobi$name, "primitive_glyph")) {
-               
-               pch_i <- if(is.null(pch)) grobi$pch else pch[i]
-               size_i <- if(is.null(size)) grobi$gp$cex else size[i]
-               
-               editGrob(
+
+             newGrob$children[[i]] <<- if(grepl(grobi$name, pattern = "primitive_glyph")) {
+
+               gp <- grobi$gp
+               pch <- grobi$pch %||% 21
+
+               if(pch %in% 21:24) {
+                 gp$fill <- newColor[k]
+                 gp$col <- bounder_color()
+               } else {
+                 gp$col <- newColor[k]
+               }
+
+               grid::editGrob(
                  grob = grobi,
-                 gp = if(pch_i %in% 21:24) {
-                   gpar(
-                     fill = color[which(index %in% i)],
-                     cex = size_i,
-                     col = loon_color$foreground_color[1]
-                   )
-                 } else {
-                   gpar(
-                     col = color[which(index %in% i)],
-                     cex = size_i
-                   )
-                 }
+                 gp = gp
                )
-             } else if(str_detect(grobi$name, "serialaxes_glyph"))  {
-               
-               polyline_grob <- getGrob(grobi, "polyline")
+             } else if(grepl(grobi$name, pattern = "serialaxes_glyph"))  {
+
+               polyline_grob <- grid::getGrob(grobi, "polyline")
                if(is.null(polyline_grob)) {
-                 polyline_grob <- getGrob(grobi, "polyline: showArea")
+                 polyline_grob <- grid::getGrob(grobi, "polyline: showArea")
                  polyline_grob_name <-  "polyline: showArea"
-                 polyline_grob$gp$fill <- color[which(index %in% i)]
+                 polyline_grob$gp$fill <- newColor[k]
+                 polyline_grob$gp$col <- newColor[k]
                } else {
                  polyline_grob_name <-  "polyline"
-                 polyline_grob$gp$col <- color[which(index %in% i)]
+                 polyline_grob$gp$col <- newColor[k]
+                 polyline_grob$gp$fill <- newColor[k]
                }
-               
-               setGrob(
+
+               grid::setGrob(
                  gTree = grobi,
                  gPath = polyline_grob_name,
                  newGrob = polyline_grob
                )
-               
-             } else if(str_detect(grobi$name, "polygon_glyph")) {
-               
-               editGrob(
+
+             } else if(grepl(grobi$name,pattern =  "polygon_glyph")) {
+
+               gp <- grobi$gp
+               gp$fill <- newColor[k]
+               gp$col <- newColor[k]
+
+               grid::editGrob(
                  grob = grobi,
-                 gp = gpar(
-                   fill = color[which(index %in% i)],
-                   col = color[which(index %in% i)],
-                   fontsize = grobi$gp$lwd
-                 )
+                 gp = gp
                )
-               
-             } else if(str_detect(grobi$name, "pointrange_glyph")) {
-               
-               point_grob <- getGrob(grobi, "point")
-               line_grob <- getGrob(grobi, "range")
-               
-               point_grob$gp$col <- color[which(index %in% i)]
-               line_grob$gp$col <- color[which(index %in% i)]
-               
-               tmpGrob <- setGrob(
+
+             } else if(grepl(grobi$name, pattern = "pointrange_glyph")) {
+
+               pointGrob <- grid::getGrob(grobi, "point")
+               lineGrob <- grid::getGrob(grobi, "range")
+
+               pointGrob$gp$col <- newColor[k]
+               lineGrob$gp$col <- newColor[k]
+
+               tmpGrob <- grid::setGrob(
                  gTree = grobi,
                  gPath = "point",
-                 newGrob = point_grob
+                 newGrob = pointGrob
                )
-               
-               setGrob(
+
+               grid::setGrob(
                  gTree = tmpGrob,
                  gPath = "range",
-                 newGrob = line_grob
+                 newGrob = lineGrob
                )
-               
-             } else if(str_detect(grobi$name, "text_glyph"))  {
-               
-               editGrob(
+
+             } else if(grepl(grobi$name, pattern = "text_glyph"))  {
+
+               gp <- grobi$gp
+               gp$col <- newColor[k]
+
+               grid::editGrob(
                  grob = grobi,
-                 gp = gpar(
-                   col = color[which(index %in% i)],
-                   fontsize = size[which(index %in% i)] * loon_default_size()[["adjusted_size"]]
-                 )
+                 gp = gp
                )
-               
-             } else if(str_detect(grobi$name, "image_glyph")) {
-               
-               setGrob(
+
+             } else if(grepl(grobi$name,pattern =  "image_glyph")) {
+
+               imageBorderGrob <- grid::getGrob(grobi, "image_border")
+               gp <- imageBorderGrob$gp
+               gp$fill <- newColor[k]
+
+               grid::setGrob(
                  gTree = grobi,
                  gPath = "image_border",
-                 newGrob = editGrob(
-                   grob = getGrob(grobi, "image_border"),
-                   gp = gpar(
-                     fill = color[which(index %in% i)],
-                     col =  NA
-                   )
+                 newGrob = grid::editGrob(
+                   grob = imageBorderGrob,
+                   gp = gp
                  )
                )
-               
-             } else {warning("Not implemented glyph"); grobi}
+
+             } else {warning("Not implemented glyph", call. = FALSE); grobi}
            }
     )
-    
-    setGrob(
-      gTree = loon_grob,
-      gPath = pointsTree_name,
+
+    grid::setGrob(
+      gTree = loon.grob,
+      gPath = pointsTreeName,
       newGrob = newGrob
     )
   } else {
-    loon_grob
+    loon.grob
   }
 }
 
-set_color_grob.l_hist <- function(loon_grob, ...) {
-  
-  args <- list(...)
-  index <- args$index
-  
-  if(length(index) > 0) {
-    
-    color <- args$color
-    changeColorWay <- args$changeColorWay
-    loon_color <- args$loon_color
-    
-    if(length(color) == 1) {
-      color <- rep(color, length(index))
-    } else if (length(color) != length(index)) {
+set_color_grob.l_hist <- function(loon.grob, index, newColor, ...) {
+
+  len <- length(index)
+
+  if(len > 0) {
+
+    lenNewColor <- length(newColor)
+    if(lenNewColor == 1) {
+      newColor <- rep(newColor, len)
+    } else if (lenNewColor != len) {
       stop("color length is not equal to index length")
     } else NULL
-    
-    newGrob <- getGrob(loon_grob, "histogram")
-    
-    lapply(index,
-           function(i){
-             newGrob$children[[i]] <<- editGrob(
-               grob = newGrob$children[[i]],
-               gp = if(changeColorWay == "fill") {
-                 gpar(
-                   fill = color[which(index %in% i)],
-                   col = loon_color$foreground_color[1]
-                 )
-               } else if(changeColorWay == "col") {
-                 gpar(
-                   col = color[which(index %in% i)]
-                 )
-               }
+
+    args <- list(...)
+    changeColorWay <- args$changeColorWay
+
+    newGrob <- grid::getGrob(loon.grob, "histogram")
+
+    lapply(seq(len),
+           function(k){
+
+             i <- index[k]
+             grobi <- newGrob$children[[i]]
+
+             gp <- grobi$gp
+             if(changeColorWay == "fill") {
+               gp$fill <- newColor[k]
+               gp$col <- bounder_color()
+             } else if(changeColorWay == "col") {
+               gp$col <- newColor[k]
+             }
+
+
+             newGrob$children[[i]] <<- grid::editGrob(
+               grob = grobi,
+               gp = gp
              )
            }
     )
-    
-    setGrob(
-      gTree = loon_grob,
+
+    grid::setGrob(
+      gTree = loon.grob,
       gPath = "histogram",
       newGrob = newGrob
     )
   } else {
-    loon_grob
+    loon.grob
   }
 }
 
-set_color_grob.l_graph <- function(loon_grob, ...) {
+set_color_grob.l_graph <- function(loon.grob, index, newColor, ...) {
 
-  args <- list(...)
-  index <- args$index
-  
-  if(length(index) > 0) {
-    
-    color <- args$color
-    size <- args$size
-    pch <- args$pch
-    
-    if(length(color) == 1) {
-      color <- rep(color, length(index))
-    } else if (length(color) != length(index)) {
+  len <- length(index)
+
+  if(len > 0) {
+
+    lenNewColor <- length(newColor)
+    if(lenNewColor == 1) {
+      newColor <- rep(newColor, len)
+    } else if (lenNewColor != len) {
       stop("color length is not equal to index length")
     } else NULL
-    
-    loon_color <- args$loon_color
-    
-    newGrob <- getGrob(loon_grob, "graph nodes")
-    
-    lapply(index,
-           function(i) {
-             
+
+    newGrob <- grid::getGrob(loon.grob, "graph nodes")
+
+    lapply(seq(len),
+           function(k) {
+
+             i <- index[k]
              grobi <- newGrob$children[[i]]
-             
-             pch_i <- if(is.null(pch)) grobi$pch else pch[i]
-             size_i <- if(is.null(size)) grobi$gp$cex else size[i]
-             
-             newGrob$children[[i]] <<- editGrob(
+             pch <- grobi$pch %||% 21
+             gp <- grobi$gp
+
+             if(pch %in% 21:24) {
+               gp$col <- bounder_color()
+               gp$fill <- newColor[k]
+             } else {
+               gp$col <- newColor[k]
+             }
+
+             newGrob$children[[i]] <<- grid::editGrob(
                grob = grobi,
-               gp = if(pch_i %in% 21:24) {
-                 gpar(
-                   fill = color[which(index %in% i)],
-                   cex = size_i,
-                   col = loon_color$foreground_color[1]
-                 )
-               } else {
-                 gpar(
-                   col = color[which(index %in% i)],
-                   cex = size_i
-                 )
-               }
+               gp = gp
              )
            }
     )
-    
-    setGrob(
-      gTree = loon_grob,
+
+    grid::setGrob(
+      gTree = loon.grob,
       gPath = "graph nodes",
       newGrob = newGrob
     )
   } else {
-    loon_grob
+    loon.grob
   }
 }
 
-set_color_grob.l_serialaxes <- function(loon_grob, ...) {
+set_color_grob.l_serialaxes <- function(loon.grob, index, newColor, ...) {
 
-  args <- list(...)
-  index <- args$index
-  
-  if(length(index) > 0) {
-    color <- args$color
-    axes_gPath <- args$axes_gPath
-    axes_grob <- getGrob(loon_grob, axes_gPath)
-    
-    if(length(color) == 1) {
-      color <- rep(color, length(index))
-    } else if (length(color) != length(index)) {
+  len <- length(index)
+
+  if(len > 0) {
+
+    args <- list(...)
+    lenNewColor <- length(newColor)
+
+    if(lenNewColor == 1) {
+      newColor <- rep(newColor, len)
+    } else if (lenNewColor != len) {
       stop("color length is not equal to index length")
     } else NULL
-    
-    lapply(index,
-           function(i) {
-             
-             grobi <- axes_grob$children[[i]]
-             axes_grob$children[[i]] <<- editGrob(
+
+    axesGpath <- args$axesGpath
+    axesGrob <- grid::getGrob(loon.grob, axesGpath)
+
+    lapply(seq(len),
+           function(k) {
+
+             i <- index[k]
+             grobi <- axesGrob$children[[i]]
+             gp <- grobi$gp
+
+             if(grepl(grobi$name, pattern = "showArea")) {
+
+               gp$fill <- newColor[k]
+               gp$col <- NULL
+
+             } else {
+               gp$col <- newColor[k]
+             }
+
+             axesGrob$children[[i]] <<- grid::editGrob(
                grob = grobi,
-               gp = if(str_detect(grobi$name, "showArea")) {
-                 gpar(fill = color[which(index %in% i)], col = NA)
-               } else {
-                 gpar(col = color[which(index %in% i)], lwd = grobi$gp$lwd)
-               }
+               gp = gp
              )
            }
     )
-    
-    setGrob(
-      gTree = loon_grob,
-      gPath = axes_gPath,
-      newGrob = axes_grob
+
+    grid::setGrob(
+      gTree = loon.grob,
+      gPath = axesGpath,
+      newGrob = axesGrob
     )
   } else {
-    loon_grob
+    loon.grob
   }
 }

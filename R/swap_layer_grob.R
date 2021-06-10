@@ -1,33 +1,37 @@
-swap_layer_grob <- function(loon_grob, parent) {
+swap_layer_grob <- function(loon.grob, parent) {
 
-  layers <- get_layers(loon_grob)
+  layers <- get_layers(loon.grob)
 
   if(length(layers) == 1 & all(layers == parent)) {
-    loon_grob
+    loon.grob
   } else {
     lapply(layers,
            function(layer){
              if(layer != parent) {
 
-               grobi <- getGrob(loon_grob, layer)
+               grobi <- grid::getGrob(loon.grob, layer)
 
-               if(str_detect(layer, "l_layer_polygon:") | str_detect(layer, "l_layer_line:") | str_detect(layer, "l_layer_oval:") | str_detect(layer, "l_layer_text:") | str_detect(layer, "l_layer_points:")) {
+               if(grepl(layer, pattern = "l_layer_polygon:") ||
+                  grepl(layer, pattern = "l_layer_line:") ||
+                  grepl(layer, pattern = "l_layer_oval:") ||
+                  grepl(layer, pattern = "l_layer_text:") ||
+                  grepl(layer, pattern = "l_layer_points:")) {
 
-                 loon_grob <<- setGrob(
-                   gTree = loon_grob,
+                 loon.grob <<- grid::setGrob(
+                   gTree = loon.grob,
                    gPath = layer,
-                   newGrob = editGrob(
+                   newGrob = grid::editGrob(
                      grob = grobi,
                      x = grobi$y,
                      y = grobi$x
                    )
                  )
-               } else if(str_detect(layer, "l_layer_rectangle:")) {
+               } else if(grepl(layer, pattern = "l_layer_rectangle:")) {
 
-                 loon_grob <<- setGrob(
-                   gTree = loon_grob,
+                 loon.grob <<- grid::setGrob(
+                   gTree = loon.grob,
                    gPath = layer,
-                   newGrob = editGrob(
+                   newGrob = grid::editGrob(
                      grob = grobi,
                      x = grobi$y,
                      y = grobi$x,
@@ -35,17 +39,19 @@ swap_layer_grob <- function(loon_grob, parent) {
                      width = grobi$height
                    )
                  )
-               } else if(str_detect(layer, "l_layer_texts:") | str_detect(layer, "l_layer_polygons:") | str_detect(layer, "l_layer_lines:")) {
+               } else if(grepl(layer, pattern = "l_layer_texts:") ||
+                         grepl(layer, pattern = "l_layer_polygons:") ||
+                         grepl(layer, pattern = "l_layer_lines:")) {
 
-                 loon_grob <<- setGrob(
-                   gTree = loon_grob,
+                 loon.grob <<- setGrob(
+                   gTree = loon.grob,
                    gPath = layer,
                    newGrob = gTree(
                      children = do.call(
                        gList,
                        lapply(grobi$children,
                               function(child){
-                                editGrob(
+                                grid::editGrob(
                                   child,
                                   x = child$y,
                                   y = child$x
@@ -57,17 +63,17 @@ swap_layer_grob <- function(loon_grob, parent) {
                      vp = grobi$vp
                    )
                  )
-               } else if(str_detect(layer, "l_layer_rectangles:")) {
+               } else if(grepl(layer, pattern = "l_layer_rectangles:")) {
 
-                 loon_grob <<- setGrob(
-                   gTree = loon_grob,
+                 loon.grob <<- setGrob(
+                   gTree = loon.grob,
                    gPath = layer,
                    newGrob = gTree(
                      children = do.call(
                        gList,
                        lapply(grobi$children,
                               function(child){
-                                editGrob(
+                                grid::editGrob(
                                   child,
                                   x = child$y,
                                   y = child$x,
@@ -81,11 +87,11 @@ swap_layer_grob <- function(loon_grob, parent) {
                      vp = grobi$vp
                    )
                  )
-               } else stop("undefined layer name")
+               } else NULL
              }
            }
     )
 
-    loon_grob
+    loon.grob
   }
 }
