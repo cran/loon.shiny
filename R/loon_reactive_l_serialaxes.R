@@ -40,10 +40,10 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
       loonWidgetsInfo <- modifiedLinkingInfo$loonWidgetsInfo
 
     } else {
-
       brushId <- outputInfo$brushId
       selectByColor <- outputInfo$selectByColor
     }
+
   } else {
 
     output.grob <- loon.grob
@@ -417,12 +417,34 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
 
     defaultSerialaxesSettings <- get_defaultSerialaxesSettings(axesLayoutInShiny)
 
-    viewPort <- grid::vpStack(
-      grid::plotViewport(margins = loonDefaultSerialaxesArgs$margins, name = "grid::plotViewport"),
+    vp <- grid::vpStack(
+      grid::plotViewport(margins = loonDefaultSerialaxesArgs$margins, name = "plotViewport"),
       grid::dataViewport(xscale = defaultSerialaxesSettings$xscale,
                          yscale = defaultSerialaxesSettings$yscale,
                          name = "dataViewport")
     )
+
+    # to make the `convert` function work properly
+    grid::pushViewport(vp)
+
+    native.x <- list()
+    native.y <- list()
+
+    for(i in seq(N)) {
+      native.x[[i]] <- grid::convertX(loonWidgetsInfo$x[[i]], unitTo = "native", TRUE)
+      native.y[[i]] <- grid::convertY(loonWidgetsInfo$y[[i]], unitTo = "native", TRUE)
+    }
+
+    loonWidgetsInfo$native.x <- native.x
+    loonWidgetsInfo$native.y <- native.y
+
+    # query the `offset`
+    offset <- get_offset(vp = vp,
+                         l = plotBrush$domain$left %||% plotClick$domain$left %||% -0.04,
+                         r = plotBrush$domain$right %||% plotClick$domain$right %||% 1.04,
+                         b = plotBrush$domain$bottom %||% plotClick$domain$bottom %||% -0.04,
+                         t = plotBrush$domain$top %||% plotClick$domain$top %||% 1.04)
+    loonWidgetsInfo$offset <- offset
 
     # sweeping or brushing
     brushId <- if(initialDisplay) {
@@ -437,17 +459,20 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
 
       } else {
 
-        get_brushId(
-          loon.grob = output.grob,
-          coord = list(
-            x = loonWidgetsInfo$x,
-            y = loonWidgetsInfo$y
-          ),
-          position = position,
-          brushInfo = plotBrush,
-          vp = viewPort,
-          axesLayoutInShiny = axesLayoutInShiny
-        )
+        if(!is.null(position))
+          get_brushId(
+            loon.grob = output.grob,
+            coord = list(
+              x = loonWidgetsInfo$x,
+              y = loonWidgetsInfo$y
+            ),
+            position = position,
+            brushInfo = plotBrush,
+            vp = vp,
+            offset = offset,
+            clickInfo = plotClick,
+            N = N
+          )
       }
     }
 
@@ -469,11 +494,8 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
 
       # sticky is on
       if(!is.null(selectByColor)) {
-
         whichIsSelected <- union(which(loonWidgetsInfo$color %in% selectByColor), which(loonWidgetsInfo$selected))
-
       } else {
-
         whichIsSelected <- which(loonWidgetsInfo$selected)
       }
 
@@ -651,7 +673,7 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
       buttons["absToPlus"] <- absToPlus
 
       if(length(brushId) > 0) {
-        newSize <- min(loonWidgetsInfo$size[brushId]) + default_step_size(line = TRUE)
+        newSize <- min(loonWidgetsInfo$size[brushId]) + 1
         loonWidgetsInfo$size[brushId] <- rep(newSize, length(brushId))
 
         loon.grob <- set_size_grob(loon.grob = loon.grob,
@@ -674,8 +696,8 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
       buttons["absToMinus"] <- absToMinus
 
       if(length(brushId) > 0) {
-        newSize <- min(loonWidgetsInfo$size[brushId]) - default_step_size(line = TRUE)
-        if(newSize <= 0) newSize <- minimumSize()
+        newSize <- min(loonWidgetsInfo$size[brushId]) - 1
+        if(newSize <= 1) newSize <- 1
         loonWidgetsInfo$size[brushId] <- rep(newSize, length(brushId))
 
         loon.grob <- set_size_grob(loon.grob = loon.grob,
@@ -699,7 +721,7 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
 
       if(length(brushId) > 0) {
 
-        loonWidgetsInfo$size[brushId] <- loonWidgetsInfo$size[brushId] + default_step_size(line = TRUE)
+        loonWidgetsInfo$size[brushId] <- loonWidgetsInfo$size[brushId] + 1
 
         loon.grob <- set_size_grob(loon.grob = loon.grob,
                                    index = brushId,
@@ -722,8 +744,8 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
 
       if(length(brushId) > 0) {
 
-        newSize <- loonWidgetsInfo$size[brushId] - default_step_size(line = TRUE)
-        newSize[which(newSize <= 0)] <- minimumSize()
+        newSize <- loonWidgetsInfo$size[brushId] - 1
+        newSize[which(newSize <= 1)] <- 1
         loonWidgetsInfo$size[brushId] <- newSize
 
         loon.grob <- set_size_grob(loon.grob = loon.grob,
@@ -751,7 +773,7 @@ loon_reactive.l_serialaxes <- function(loon.grob, output.grob, linkingInfo, butt
       gPath = "l_serialaxes",
       newGrob = grid::editGrob(
         grob = grid::getGrob(output.grob, "l_serialaxes"),
-        vp = viewPort
+        vp = vp
       )
     )
 

@@ -1,13 +1,14 @@
 #' @title Automatically Create a \code{shiny} App Based on Interactive \code{Loon} Widgets
 #' @name loon.shiny
 #' @description Interactive \code{loon} widgets displayed in a \code{shiny} app
-#' @param widgets A \code{loon} widget or a list of \code{loon} widgets.
+#' @param widgets A \code{loon} widget or a list of \code{loon} widgets. If the input is a
+#' \code{ggplot} object, the \code{ggplot} object will be turned into a \code{loon} widget
+#' via \code{\link{ggplot2loon}}.
 #' @param selectBy The way to brush, can be 'brushing' (keep the brush whenever the plot is updated),
-#' 'sweeping' (clear the brush whenever the plot is updated) or 'byDefault' (determined by \code{loon} widget 'selectBy',
-#' if 'selectBy' is sweeping, then \code{selectBy} will be assigned to 'sweeping', vice versa)
+#' 'sweeping' (clear the brush whenever the plot is updated) or 'byDefault' (determined by \code{loon} widget 'selectBy')
 #' @param showWorldView Logical; whether to show the world view.
 #' @param plotRegionWidth Plot region width. Must be a valid \code{CSS} unit (like '100%', '400px') or a number,
-#' which will be coerced to a string and have 'px' appended. More details, check \code{\link{plotOutput}}.
+#' which will be coerced to a string and have 'px' appended.
 #' @param plotRegionHeight Plot region height.
 #' @param plotRegionBackground Plot region background color
 #' @param layoutMatrix Optional layout matrix to place \code{loon} widgets. See \code{layout_matrix} in \code{\link{grid.arrange}}.
@@ -25,6 +26,11 @@
 #' parent container.
 #' @param inspectorWidth Width of the inspector panel.
 #' @param inspectorHeight Height of the inspector panel.
+#' @param toolboxWidth The width of a toolbox
+#' @param toolboxLocation The position of a toolbox (if any) which is
+#' a length two numerical vector ("pixel") representing the location (\code{x}, \code{y}) of
+#' the top-left corner. A positive \code{x} pushes the toolbox to the right of the mouse and
+#' a positive \code{y} pushes the toolbox down.
 #' @param options \code{shinyApp} argument that should be passed to the \code{runApp} call, see \code{\link{shinyApp}}.
 #' @param ... Named arguments to modify shiny app.
 #'
@@ -61,13 +67,18 @@
 #' @examples
 #' ## Only run this example in interactive R sessions
 #' if(interactive()) {
-#'   ############### Basic ###############
-#'   p <- l_plot(iris,
-#'               color = iris$Species,
-#'               showGuides = TRUE,
-#'               showScales = TRUE)
-#'
-#'   loon.shiny(p)
+#'   ############## Querying ##############
+#'   lp <- with(mpg,
+#'              l_plot(displ, hwy,
+#'                     showItemLabels = TRUE,
+#'                     itemLabel = with(mpg,
+#'                       paste0("model:", manufacturer, " ",
+#'                               model, "\n",
+#'                              "year:", year, "\n",
+#'                              "drive way:", drv, "\n",
+#'                              "fuel type:", fl)),
+#'                     color = "black"))
+#'   loon.shiny(lp)
 #'
 #'   ############### Link multiple plots ###############
 #'   p1 <- l_plot(iris,
@@ -84,34 +95,36 @@
 #'   loon.shiny(list(p1, p2, p3),
 #'              layoutMatrix = matrix(c(2,NA,1,3),
 #'              nrow = 2, byrow = TRUE))
-#' }
 #'
-#' \dontrun{
-#'   if (requireNamespace('loon.ggplot', quietly = TRUE)) {
-#'       p <- ggplot(mpg, aes(displ, hwy)) +
-#'         geom_point(data = transform(mpg, class = NULL), colour = 'grey85') +
-#'         geom_point() +
-#'         facet_wrap(~class)
-#'       g <- loon.ggplot(p, activeGeomLayers = 2) # active the second layer
-#'       loon.shiny(g)
-#'   }
+#' if (requireNamespace('loon.ggplot', quietly = TRUE)) {
+#'     # ggplot -> loon -> shiny
+#'     p <- ggplot(mpg, aes(displ, hwy)) +
+#'       geom_point(data = transform(mpg, class = NULL), colour = 'grey85') +
+#'       geom_point() +
+#'       facet_wrap(~class)
+#'     g <- loon.ggplot(p,
+#'                      activeGeomLayers = 2,
+#'                      itemLabel = mpg$model) # active the second layer
+#'     # with facets
+#'     loon.shiny(g, toolboxWidth = "100px")
+#' }
 #' }
 
 
 # TODO:
-# 1. "selectBy = sweeping", invert dynamic selection is not right: DONE
-# 2. to add "sticky" in  l_hist, l_serialaxes: DONE
+# 1. "selectBy = sweeping", invert dynamic selection is not right. DONE!
+# 2. to add "sticky" in  l_hist, l_serialaxes. DONE!
 # 3. "by color": change checkboxGroup to selectInput:
 # 4. A bug. Turn "sticky" on with brush window, change to invert dynamic selection, try click on "plot" or "world": leave it
-# 5. glyph set in l_plot
-# 6. world view, only color, activition are dispatched. size and glyph are not: DONE
-# 7. glyph set in l_graph (maybe no)
-# 8. no itemLabel (grob thing)
-# 9. no group layers
-# 10. layers : no into a layer group and out a layer group buttons
-# 11. add linkedStates on inspector: DONE
-# 12. no sweeping and brushing (can be set at the beginning but cannot be set interactively)
-# 13. add "sticky" to replace "shift": DONE
+# 5. glyph set in l_plot. Done !
+# 6. world view, only color, activition are dispatched. size and glyph are not. DONE!
+# 7. glyph set in l_graph (maybe no).
+# 8. no itemLabel (grob thing). Done!
+# 9. no group layers.
+# 10. layers : grouping is unavailible.
+# 11. add linkedStates on inspector. DONE
+# 12. no sweeping and brushing (can be set at the beginning but cannot be set interactively).
+# 13. add "sticky" to replace "shift". DONE!
 
 loon.shiny <- function(widgets,
                        selectBy = c("byDefault","brushing", "sweeping"),
@@ -129,10 +142,15 @@ loon.shiny <- function(widgets,
                        inspectorLocation = c("auto", "auto", "60px", "20px"),
                        inspectorWidth = "350px",
                        inspectorHeight = "auto",
+                       toolboxWidth = "300px",
+                       toolboxLocation = c(10, -20),
                        options = list(),
                        ...) {
 
-  stopifnot(length(inspectorLocation) == 4)
+  if(is.ggplot(widgets)) {
+    message("The input is a `ggplot` object and will be transformed to a `loon` widget.")
+    widgets <- loon.ggplot::ggplot2loon(widgets)
+  }
 
   if(!loon::l_isLoonWidget(widgets) & !is(widgets, "l_compound")) {
     lapply(widgets,
@@ -146,6 +164,8 @@ loon.shiny <- function(widgets,
   # use the underscore case to match argument in the `arrangeGrob`
   layout_matrix <- layoutMatrix
   if(length(colorList) == 0) stop("`colorList` cannot be length zero")
+
+  stopifnot(length(inspectorLocation) == 4)
 
   # html background color may have chance to fail recognizing the color name
   # but it can understand the hex code 100%
@@ -182,6 +202,8 @@ loon.shiny <- function(widgets,
     showWorldView = showWorldView,
     colorList = colorList,
     displayedPanel = displayedPanel,
+    toolboxWidth = toolboxWidth,
+    toolboxLocation = toolboxLocation,
     ...)
 
   server <- loon.server(

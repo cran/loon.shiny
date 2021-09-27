@@ -8,8 +8,10 @@ get_worldViewPort <- function(loon.grob, parent = "",
   grid::pushViewport(vp)
 
   viewPort <- get_viewPort(loon.grob = loon.grob)
-  plotViewXlim <- viewPort[[2]]$xscale
-  plotViewYlim <- viewPort[[2]]$yscale
+  # dataViewport <- viewPort["dataViewport"]
+  dataViewport <- get_vp_from_vpStack(viewPort, "dataViewport")
+  plotViewXlim <- dataViewport$xscale
+  plotViewYlim <- dataViewport$yscale
 
   xlim <- ylim <- list()
 
@@ -66,6 +68,12 @@ get_worldViewPort <- function(loon.grob, parent = "",
 get_layer_worldView <- function(loon.grob, layer) {
 
   grobi <- grid::getGrob(loon.grob, layer)
+
+  if(is.nullGrob(grobi))
+    return(
+      list(xlim = numeric(0),
+           ylim = numeric(0))
+    )
 
   if(grepl(layer, pattern = "l_layer_polygon:") ||
      grepl(layer, pattern = "l_layer_line:") ||

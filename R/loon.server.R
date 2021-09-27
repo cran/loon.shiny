@@ -7,15 +7,23 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
 
   noneInteractiveGrobs_index <- get_noneInteractiveGrobs_index(loon.grobs)
 
+  # Get each grob position
+  # The position is calculated twice, the other is in `server` function,.
+  # Check that for details
+  positions <- tryCatch(
+    expr = {
+      loonGrob_positions(gtable,
+                         loon.grobs,
+                         arrangeGrobArgs = arrangeGrobArgs)
+    },
+    error = function(e) NULL
+  )
+
   # 1. check whether the layout_matrix, nrow, ncol, widths, heights are valid
   # 2. rearrange the grobs if widths are heights provided
   # since in the position specification (next line), no widths and heights are considered
   # if the layout_matrix is not rearranged, the selection in shiny will not work properly
   arrangeGrobArgs <- adjust_arrangeGrobArgs(arrangeGrobArgs, n = length(loon.grobs))
-  # get each grob position
-  positions <- loonGrob_positions(gtable,
-                                  loon.grobs,
-                                  arrangeGrobArgs = arrangeGrobArgs)
 
   n <- length(loon.grobs)
   tabPanelNames <- names(loon.grobs)
@@ -28,6 +36,10 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
 
   linkingGroups <- sapply(runIndex, function(j) loonWidgetsInfo[[j]]$linkingGroup)
   linkingInfo <- get_linkingInfo(linkingGroups, loonWidgetsInfo, tabPanelNames, n)
+
+  count <- 0L
+  # global environment
+  itemLabel <- NULL
 
   server <- function(input, output, session) {
 
@@ -44,10 +56,10 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
 
     # In server function, the order of execution is
     # `update_sidebarPanel` --> render `plot` --> render `world view` --> `update_sidebarPanel`
-
     # update tab panel
     shiny::observe({
 
+      ######################## window focus ########################
       pos <- get_currentSiderBar(positions, input, noneInteractiveGrobs_index)
 
       if(length(pos) > 0) {
@@ -57,9 +69,10 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
       }
 
       currentSiderBar <- input[["navBarPage"]]
-      runIndex <<- c(which(tabPanelNames == currentSiderBar), which(tabPanelNames!= currentSiderBar))
+      runIndex <<- c(which(tabPanelNames == currentSiderBar),
+                     which(tabPanelNames!= currentSiderBar))
 
-      # update ui
+      ######################## update dynamic ui ########################
       # slider bar names (xlim to ylim, vice versa), values, ...
       # color check box
       lapply(runIndex,
@@ -81,7 +94,8 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
              }
       )
 
-      output$plots <-  shiny::renderPlot({
+      ######################## graphics ########################
+      output$plots <- shiny::renderPlot({
 
         loon_reactive_grobs <- lapply(runIndex,
                                       function(j) {
@@ -119,6 +133,20 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
                                         return(reactive_grobs_info$output.grob)
                                       }
         )
+
+        # the `positions` matrix is calculated again.
+        # reason: inside the function, we call `grid::convertUnit()` to
+        # to convert an equivalent unit object.
+        # The new "unit" (`unitTo`) is `npc`, only if the graphics are drawn,
+        # the conversion is precise.
+        if(count == 0) {
+          positions <<- loonGrob_positions(gtable,
+                                           loon.grobs,
+                                           arrangeGrobArgs = arrangeGrobArgs)
+
+          count <<- count + 1
+        }
+
         # Update display
         # If it is a facet grob or ggplot grob
         # since, rather than displays
@@ -130,21 +158,12 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
                                            arrangeGrobArgs = arrangeGrobArgs))
       })
 
+      ######################## world view ########################
       if(showWorldView) {
         # only update the current world view
         output[[paste0(currentSiderBar, "plot_world_view")]] <- shiny::renderPlot({
 
           id <- which(tabPanelNames %in% currentSiderBar)
-
-          # loon_reactive_worldView_grob <- loon_reactive_worldView(
-          #   loon.grob = loon.grobs[[id]],
-          #   buttons = button_list[[id]],
-          #   input,
-          #   tabPanelName = currentSiderBar,
-          #   outputInfo = outputInfo[[id]]
-          # )
-          #
-          # grid::grid.draw(loon_reactive_worldView_grob)
 
           grid::grid.draw(loon_worldView(output.grobs[[id]],
                                          input, currentSiderBar,
@@ -152,7 +171,36 @@ loon.server <- function(input, output, session, update = TRUE, loon.grobs, gtabl
                                          loonWidgetsInfo = outputInfo[[id]]$loonWidgetsInfo))
         })
       }
+
+      ######################## querying ########################
+      output$tooltip <- shiny::renderUI({
+        plotHover <- input$plotHover
+        # Ensure that values are available before creating the toolbox
+        ## a scatter plot or a serial axes plot
+        shiny::req("itemLabels" %in% input[[paste0(currentSiderBar, "itemLabels")]] ||
+                     "showItemLabels" %in% input[[paste0(currentSiderBar, "plot")]])
+        # update the itemLabel in the global env
+        itemLabel <<- get_itemLabel(
+          loon.grob = output.grobs[[runIndex[1L]]],
+          plotHover = plotHover,
+          outputInfo = outputInfo[[runIndex[1L]]],
+          position = positions[runIndex[1L], ])
+        shiny::req(itemLabel)
+        verbatimTextOutput("vals")
+      })
+
+      output$vals <- shiny::renderPrint({
+        plotHover <- input$plotHover
+        # Ensure that values are available before creating the toolbox
+        ## a scatter plot or a serial axes plot
+        shiny::req("itemLabels" %in% input[[paste0(currentSiderBar, "itemLabels")]] ||
+                     "showItemLabels" %in% input[[paste0(currentSiderBar, "plot")]])
+        shiny::req(itemLabel)
+        write(paste(itemLabel, collapse = "\n\n"), file = "")
+      })
+
     })
+
   }
 
   server

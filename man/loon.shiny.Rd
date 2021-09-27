@@ -21,21 +21,24 @@ loon.shiny(
   inspectorLocation = c("auto", "auto", "60px", "20px"),
   inspectorWidth = "350px",
   inspectorHeight = "auto",
+  toolboxWidth = "300px",
+  toolboxLocation = c(10, -20),
   options = list(),
   ...
 )
 }
 \arguments{
-\item{widgets}{A \code{loon} widget or a list of \code{loon} widgets.}
+\item{widgets}{A \code{loon} widget or a list of \code{loon} widgets. If the input is a
+\code{ggplot} object, the \code{ggplot} object will be turned into a \code{loon} widget
+via \code{\link{ggplot2loon}}.}
 
 \item{selectBy}{The way to brush, can be 'brushing' (keep the brush whenever the plot is updated),
-'sweeping' (clear the brush whenever the plot is updated) or 'byDefault' (determined by \code{loon} widget 'selectBy',
-if 'selectBy' is sweeping, then \code{selectBy} will be assigned to 'sweeping', vice versa)}
+'sweeping' (clear the brush whenever the plot is updated) or 'byDefault' (determined by \code{loon} widget 'selectBy')}
 
 \item{showWorldView}{Logical; whether to show the world view.}
 
 \item{plotRegionWidth}{Plot region width. Must be a valid \code{CSS} unit (like '100%', '400px') or a number,
-which will be coerced to a string and have 'px' appended. More details, check \code{\link{plotOutput}}.}
+which will be coerced to a string and have 'px' appended.}
 
 \item{plotRegionHeight}{Plot region height.}
 
@@ -65,6 +68,13 @@ parent container.}
 \item{inspectorWidth}{Width of the inspector panel.}
 
 \item{inspectorHeight}{Height of the inspector panel.}
+
+\item{toolboxWidth}{The width of a toolbox}
+
+\item{toolboxLocation}{The position of a toolbox (if any) which is
+a length two numerical vector ("pixel") representing the location (\code{x}, \code{y}) of
+the top-left corner. A positive \code{x} pushes the toolbox to the right of the mouse and
+a positive \code{y} pushes the toolbox down.}
 
 \item{options}{\code{shinyApp} argument that should be passed to the \code{runApp} call, see \code{\link{shinyApp}}.}
 
@@ -101,13 +111,18 @@ Interactive \code{loon} widgets displayed in a \code{shiny} app
 \examples{
 ## Only run this example in interactive R sessions
 if(interactive()) {
-  ############### Basic ###############
-  p <- l_plot(iris,
-              color = iris$Species,
-              showGuides = TRUE,
-              showScales = TRUE)
-
-  loon.shiny(p)
+  ############## Querying ##############
+  lp <- with(mpg,
+             l_plot(displ, hwy,
+                    showItemLabels = TRUE,
+                    itemLabel = with(mpg,
+                      paste0("model:", manufacturer, " ",
+                              model, "\n",
+                             "year:", year, "\n",
+                             "drive way:", drv, "\n",
+                             "fuel type:", fl)),
+                    color = "black"))
+  loon.shiny(lp)
 
   ############### Link multiple plots ###############
   p1 <- l_plot(iris,
@@ -124,16 +139,18 @@ if(interactive()) {
   loon.shiny(list(p1, p2, p3),
              layoutMatrix = matrix(c(2,NA,1,3),
              nrow = 2, byrow = TRUE))
-}
 
-\dontrun{
-  if (requireNamespace('loon.ggplot', quietly = TRUE)) {
-      p <- ggplot(mpg, aes(displ, hwy)) +
-        geom_point(data = transform(mpg, class = NULL), colour = 'grey85') +
-        geom_point() +
-        facet_wrap(~class)
-      g <- loon.ggplot(p, activeGeomLayers = 2) # active the second layer
-      loon.shiny(g)
-  }
+if (requireNamespace('loon.ggplot', quietly = TRUE)) {
+    # ggplot -> loon -> shiny
+    p <- ggplot(mpg, aes(displ, hwy)) +
+      geom_point(data = transform(mpg, class = NULL), colour = 'grey85') +
+      geom_point() +
+      facet_wrap(~class)
+    g <- loon.ggplot(p,
+                     activeGeomLayers = 2,
+                     itemLabel = mpg$model) # active the second layer
+    # with facets
+    loon.shiny(g, toolboxWidth = "100px")
+}
 }
 }

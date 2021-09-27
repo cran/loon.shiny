@@ -17,8 +17,17 @@ isZero <- function (x, neps = 1, eps = .Machine$double.eps, ...) {
   (abs(x) < neps * eps)
 }
 
-isgTree <- function(x) {
+is.gTree <- function(x) {
   inherits(x, "gTree")
+}
+
+is.ggplot <- function (x)
+  inherits(x, "ggplot")
+
+is.nullGrob <- function(x) {
+  if(grid::is.grob(x)) {
+    inherits(x, "null")
+  } else FALSE # it is not even a grob
 }
 
 select_color <- function() loon::l_getOption("select-color")
@@ -143,6 +152,9 @@ get_unit <- function(x, unit = "native", is.unit = TRUE, as.numeric = FALSE) {
   if(as.numeric) return(as.numeric(u))
   u
 }
+
+pixels_2_lines <- function(x) x / 20
+point_default_pch <- function() 19
 
 get_model_display_order <- utils::getFromNamespace("get_model_display_order", "loon")
 if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "input", "output", "session"))
