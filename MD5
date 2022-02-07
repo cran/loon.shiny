@@ -1,9 +1,9 @@
-b9efa2818f0d742f65be341d5be905a8 *DESCRIPTION
+1bda86b42b1fbd7695e4cdcca1b415fc *DESCRIPTION
 b32ee9b91c5d9dd4207b4a0aa630bac2 *NAMESPACE
 6f4c16d24d5f7086af5fda67864c12f1 *R/S3-vpStack.R
 bb93da0d5dac2b7b21cc34fb20451a07 *R/adjust_arrangeGrobArgs.R
 2bd81eae01e46ff27bbd9e0fc88878ac *R/adjust_canvas_size.R
-91452194e338cb424cb10c83970993bf *R/adjust_loon.grobs.R
+1800b7130d2646793ea94d9135370dab *R/adjust_loon_grobs.R
 abaf3acf551334394913b5ee914a2351 *R/button_values.R
 7042c665bcfda33e02b765d46634c083 *R/collapse_button.R
 74f72d4c8253e1b0952de054f15d39d3 *R/deprecated_functions.R
@@ -23,7 +23,7 @@ f5b17f6fd693c86b4aff3ca8b697313b *R/get_layoutMatrix.R
 598c3a04fcbc9dfa2883574c44f9de90 *R/get_loonInfo.R
 77a714e0a5717842222b0c1ab0cb359b *R/get_loonWidgetsInfo-l_graph.R
 b12942b94e5f3c9799cf1be1943c8769 *R/get_loonWidgetsInfo-l_hist.R
-18bcf21ec146f47f5faa7d518ba11866 *R/get_loonWidgetsInfo-l_plot.R
+dd570c583ea12f57c73fcf54a53d57f1 *R/get_loonWidgetsInfo-l_plot.R
 ea91872e05710799c4f6a14c3dd0b753 *R/get_loonWidgetsInfo-l_serialaxes.R
 62d00cd02f99277a9fc475a0e218a8e3 *R/get_loonWidgets_info.R
 f1d5f56f48c862525a0b826aa4eabcfe *R/get_noneInteractiveGrobs_index.R
@@ -42,7 +42,7 @@ ff25fddaed324d319e54200f2da29ad9 *R/loon.server.R
 ed29bde295b352d2fdbbc248fd56faae *R/loon.shiny-deprecated.r
 91fd88163c9591748669224139d911e9 *R/loon.shiny-package.R
 4fb934271ef6bdf98238e42b8a092cf2 *R/loon.shiny.R
-aa7284caa52a5b4e857ac50d7dd26082 *R/loon.ui.R
+9f272c549ad63064716aed920dbcebfa *R/loon.ui.R
 d66f06f56017feb410d4f5965077d98a *R/loonGrob_name.R
 938ae68acc033ac67a461f664f1262f0 *R/loonGrob_positions.R
 f1286c8a397570b68cb18f828b1c3b88 *R/loonWidget_name.R
@@ -114,7 +114,7 @@ c5d1d319fb0f5c724824c19a48416818 *R/update_sideBarPanel.R
 0ed22839554b561420e9ec5c9815cf55 *build/vignette.rds
 e3165dcee4c82b366ff4a4430a24967e *inst/doc/introduction.R
 05c0a0ac393226e1d04c939aed344451 *inst/doc/introduction.Rmd
-ce9eb6c5111e5c87c8456da3838e0672 *inst/doc/introduction.html
+be83a86a48e1557584682fbb4c9cdb6c *inst/doc/introduction.html
 26fd0b67541141139f55a05fa435db35 *inst/images/LoonIcon.gif
 4a6a920fa1478a9e75583235cf9ab58d *inst/images/LoonIcon.png
 4403acce0e28519feafc0a76e25b6001 *inst/images/align_h.png
